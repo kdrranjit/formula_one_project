@@ -1,0 +1,20 @@
+{
+	"name": "ds_ingest_seasons_data_adls",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ingest_data_adls",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "seasons.json",
+				"folderPath": "raw/seasons",
+				"fileSystem": "fomula-one"
+			}
+		},
+		"schema": {}
+	}
+}

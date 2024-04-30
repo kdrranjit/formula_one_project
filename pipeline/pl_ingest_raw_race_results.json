@@ -1,0 +1,10 @@
+{
+	"name": "pl_ingest_raw_race_results",
+	"properties": {
+		"description": "ingest raw race results from ergast api to adls gen2 storage",
+		"folder": {
+			"name": "Formula_one_project/ingest_raw_data"
+		},
+		"annotations": []
+	}
+}
