@@ -5,6 +5,9 @@
 			"referenceName": "ls_ergast_api",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "ingest_raw_data"
+		},
 		"annotations": [],
 		"type": "Json",
 		"typeProperties": {

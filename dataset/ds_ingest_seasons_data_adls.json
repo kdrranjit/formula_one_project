@@ -5,6 +5,9 @@
 			"referenceName": "ls_ingest_data_adls",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "ingest_raw_data"
+		},
 		"annotations": [],
 		"type": "Json",
 		"typeProperties": {
