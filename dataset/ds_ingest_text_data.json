@@ -1,0 +1,24 @@
+{
+	"name": "ds_ingest_text_data",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ingest_data_adls",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "demo.txt",
+				"folderPath": "raw/demo",
+				"fileSystem": "fomula-one"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}

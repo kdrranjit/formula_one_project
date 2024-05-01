@@ -31,8 +31,153 @@
 						"type": "DatasetReference"
 					}
 				}
+			},
+			{
+				"name": "for_each_season",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_seasons_data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_seasons_data').output.firstRow.MRData.SeasonTable.Seasons",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "web_ingest_races",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "@concat('https://ergast.com/api/f1/',item().Season,'/races.json?limit=1000')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "act_ingest_data",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "web_ingest_races",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "web_v_op",
+								"value": {
+									"value": "@{activity('web_ingest_races').output}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "copy_data_var_to_adls",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "act_ingest_data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "my_clm",
+											"value": {
+												"value": "@variables('web_v_op')",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_ingest_text_data",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_ingest_text_data_adls",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
 			}
 		],
+		"variables": {
+			"web_v_op": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "Formula_one_project/ingest_raw_data"
 		},
