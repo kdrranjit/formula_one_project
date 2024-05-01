@@ -49,7 +49,8 @@
 						"value": "@activity('Lookup_races_data').output.firstRow.MRData.SeasonTable.seasons",
 						"type": "Expression"
 					},
-					"isSequential": true,
+					"isSequential": false,
+					"batchCount": 10,
 					"activities": [
 						{
 							"name": "web_ingest_races_data",
