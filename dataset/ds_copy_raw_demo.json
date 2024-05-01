@@ -1,0 +1,29 @@
+{
+	"name": "ds_copy_raw_demo",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ingest_data_adls",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "demo.txt",
+				"folderPath": "raw/demo",
+				"fileSystem": "fomula-one"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "",
+			"firstRowAsHeader": true,
+			"quoteChar": ""
+		},
+		"schema": [
+			{
+				"name": "12345",
+				"type": "String"
+			}
+		]
+	}
+}

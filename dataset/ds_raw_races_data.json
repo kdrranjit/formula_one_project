@@ -1,0 +1,32 @@
+{
+	"name": "ds_raw_races_data",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ingest_data_adls",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"season": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(dataset().season,'_races.json')",
+					"type": "Expression"
+				},
+				"folderPath": "raw/races",
+				"fileSystem": "fomula-one"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "",
+			"firstRowAsHeader": false,
+			"quoteChar": ""
+		},
+		"schema": []
+	}
+}

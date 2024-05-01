@@ -1,5 +1,5 @@
 {
-	"name": "ds_ingest_data_http",
+	"name": "ds_ingest_seasons_data_http",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_ergast_api",

@@ -46,7 +46,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "ds_ingest_data_http",
+						"referenceName": "ds_ingest_seasons_data_http",
 						"type": "DatasetReference"
 					}
 				],
