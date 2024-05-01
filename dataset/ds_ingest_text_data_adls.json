@@ -10,8 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "races.json",
-				"folderPath": "raw/races",
+				"fileName": "results.json",
 				"fileSystem": "fomula-one"
 			},
 			"columnDelimiter": ",",

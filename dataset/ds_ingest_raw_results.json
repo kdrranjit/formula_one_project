@@ -1,17 +1,31 @@
 {
-	"name": "ds_ingest_text_data",
+	"name": "ds_ingest_raw_results",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_ingest_data_adls",
 			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"season": {
+				"type": "String"
+			},
+			"round": {
+				"type": "String"
+			}
 		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "demo.txt",
-				"folderPath": "raw/demo",
+				"fileName": {
+					"value": "@concat(dataset().round,'_results.json')",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@concat('raw/results/', dataset().season)",
+					"type": "Expression"
+				},
 				"fileSystem": "fomula-one"
 			},
 			"columnDelimiter": ",",
