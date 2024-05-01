@@ -25,18 +25,17 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_ingest_raw_race_results')]",
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_raw_races')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"description": "ingest raw race results from ergast api to adls gen2 storage",
 				"activities": [
 					{
-						"name": "Lookup_seasons_data",
+						"name": "Lookup_races_data",
 						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
-							"timeout": "0.00:10:00",
+							"timeout": "0.12:00:00",
 							"retry": 0,
 							"retryIntervalInSeconds": 30,
 							"secureOutput": false,
@@ -47,23 +46,191 @@
 							"source": {
 								"type": "JsonSource",
 								"storeSettings": {
-									"type": "HttpReadSettings",
-									"requestMethod": "GET"
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
 								},
 								"formatSettings": {
 									"type": "JsonReadSettings"
 								}
 							},
 							"dataset": {
-								"referenceName": "ds_ingest_data_http",
+								"referenceName": "ds_ingest_seasons_data_adls",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
+						}
+					},
+					{
+						"name": "for_each_season",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup_races_data",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup_races_data').output.firstRow.MRData.SeasonTable.seasons",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 10,
+							"activities": [
+								{
+									"name": "web_ingest_races_data",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "GET",
+										"headers": {},
+										"url": {
+											"value": "@concat('https://ergast.com/api/f1/',item().season,'/races.json?limit=1000')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "ingest_data_into_variable",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "web_ingest_races_data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "web_op",
+										"value": {
+											"value": "@{activity('web_ingest_races_data').output}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Copy_data_text_to_adls",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "ingest_data_into_variable",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "my_clm",
+													"value": {
+														"value": "@variables('web_op')",
+														"type": "Expression"
+													}
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "my_clm",
+														"type": "String"
+													},
+													"sink": {
+														"type": "String",
+														"physicalType": "String",
+														"ordinal": 1
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_copy_raw_demo",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_raw_races_data",
+											"type": "DatasetReference",
+											"parameters": {
+												"season": {
+													"value": "@item().season",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
 						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"web_op": {
+						"type": "String"
+					}
 				},
 				"folder": {
 					"name": "Formula_one_project/ingest_raw_data"
@@ -71,7 +238,9 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_ingest_data_http')]"
+				"[concat(variables('factoryId'), '/datasets/ds_ingest_seasons_data_adls')]",
+				"[concat(variables('factoryId'), '/datasets/ds_copy_raw_demo')]",
+				"[concat(variables('factoryId'), '/datasets/ds_raw_races_data')]"
 			]
 		},
 		{
@@ -124,7 +293,7 @@
 						},
 						"inputs": [
 							{
-								"referenceName": "ds_ingest_data_http",
+								"referenceName": "ds_ingest_seasons_data_http",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
@@ -162,31 +331,42 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_ingest_data_http')]",
+				"[concat(variables('factoryId'), '/datasets/ds_ingest_seasons_data_http')]",
 				"[concat(variables('factoryId'), '/datasets/ds_ingest_seasons_data_adls')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_ingest_data_http')]",
+			"name": "[concat(parameters('factoryName'), '/ds_copy_raw_demo')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"linkedServiceName": {
-					"referenceName": "ls_ergast_api",
+					"referenceName": "ls_ingest_data_adls",
 					"type": "LinkedServiceReference"
 				},
 				"annotations": [],
-				"type": "Json",
+				"type": "DelimitedText",
 				"typeProperties": {
 					"location": {
-						"type": "HttpServerLocation",
-						"relativeUrl": "api/f1/seasons.json?limit=100"
-					}
+						"type": "AzureBlobFSLocation",
+						"fileName": "demo.txt",
+						"folderPath": "raw/demo",
+						"fileSystem": "fomula-one"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "",
+					"firstRowAsHeader": false,
+					"quoteChar": ""
 				},
-				"schema": {}
+				"schema": [
+					{
+						"name": "12345",
+						"type": "String"
+					}
+				]
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_ergast_api')]"
+				"[concat(variables('factoryId'), '/linkedServices/ls_ingest_data_adls')]"
 			]
 		},
 		{
@@ -209,6 +389,124 @@
 					}
 				},
 				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_ingest_data_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_ingest_seasons_data_http')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ergast_api",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": "api/f1/seasons.json?limit=100"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_ergast_api')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_ingest_text_data')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ingest_data_adls",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "demo.txt",
+						"folderPath": "raw/demo",
+						"fileSystem": "fomula-one"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_ingest_data_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_ingest_text_data_adls')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ingest_data_adls",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "races.json",
+						"folderPath": "raw/races",
+						"fileSystem": "fomula-one"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_ingest_data_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_raw_races_data')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ingest_data_adls",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"season": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@concat(dataset().season,'_races.json')",
+							"type": "Expression"
+						},
+						"folderPath": "raw/races",
+						"fileSystem": "fomula-one"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "",
+					"firstRowAsHeader": false,
+					"quoteChar": ""
+				},
+				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/ls_ingest_data_adls')]"
