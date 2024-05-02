@@ -5,12 +5,20 @@
 			"referenceName": "ls_ergast_api",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"season": {
+				"type": "String"
+			}
+		},
 		"annotations": [],
 		"type": "Json",
 		"typeProperties": {
 			"location": {
 				"type": "HttpServerLocation",
-				"relativeUrl": "api/f1/drivers.json"
+				"relativeUrl": {
+					"value": "@concat('api/f1/',dataset().season,'/drivers.json')",
+					"type": "Expression"
+				}
 			}
 		},
 		"schema": {}

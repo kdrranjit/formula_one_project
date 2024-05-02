@@ -5,12 +5,20 @@
 			"referenceName": "ls_ingest_data_adls",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"season": {
+				"type": "String"
+			}
+		},
 		"annotations": [],
 		"type": "Json",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "drivers.json",
+				"fileName": {
+					"value": "@concat(dataset().season,'_drivers.json')",
+					"type": "Expression"
+				},
 				"folderPath": "raw/drivers",
 				"fileSystem": "fomula-one"
 			}

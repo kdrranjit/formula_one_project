@@ -50,39 +50,13 @@
 						"value": "@activity('lookup_seasons_data').output.firstRow.MRData.SeasonTable.Seasons",
 						"type": "Expression"
 					},
-					"isSequential": true,
+					"isSequential": false,
+					"batchCount": 10,
 					"activities": [
-						{
-							"name": "ingest_driver_raw_data_http",
-							"type": "WebActivity",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"method": "GET",
-								"url": {
-									"value": "@concat('https://ergast.com/api/f1/',item().season,'/drivers.json')",
-									"type": "Expression"
-								}
-							}
-						},
 						{
 							"name": "Copy_drivers_raw_data",
 							"type": "Copy",
-							"dependsOn": [
-								{
-									"activity": "ingest_driver_raw_data_http",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
+							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -116,13 +90,25 @@
 							"inputs": [
 								{
 									"referenceName": "ds_ingest_driver_raw_data",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"season": {
+											"value": "@item().season",
+											"type": "Expression"
+										}
+									}
 								}
 							],
 							"outputs": [
 								{
 									"referenceName": "ds_ingest_driver_data_sink",
-									"type": "DatasetReference"
+									"type": "DatasetReference",
+									"parameters": {
+										"season": {
+											"value": "@item().season",
+											"type": "Expression"
+										}
+									}
 								}
 							]
 						}
