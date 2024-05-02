@@ -1,0 +1,20 @@
+{
+	"name": "ds_ingest_driver_data_sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ingest_data_adls",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "drivers.json",
+				"folderPath": "raw/drivers",
+				"fileSystem": "fomula-one"
+			}
+		},
+		"schema": {}
+	}
+}
